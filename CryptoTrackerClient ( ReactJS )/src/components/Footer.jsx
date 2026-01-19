@@ -1,13 +1,11 @@
 
 import React from "react";
 import styled from 'styled-components';
-import { useNavigate } from "react-router-dom";  // Importing useNavigate
-import { FaFacebook, FaTwitter, FaLinkedin, FaTelegram, FaGithub } from 'react-icons/fa';  // Importing social media icons
+import { useNavigate } from "react-router-dom";
+import { FaFacebook, FaTwitter, FaLinkedin, FaTelegram, FaGithub } from 'react-icons/fa';
 
 const Main = styled.footer`
-  // background-color: #2c2c2c;
-  // color: white;
-  padding: 40px 20px;
+  padding: 30px 20px;
   font-size: 14px;
   text-align: center;
   z-index: 
@@ -24,25 +22,12 @@ const FooterContainer = styled.div`
   align-items: center;
   max-width: 1200px;
   margin: 0 auto;
-  gap: 40px;
+  gap: 25px;
 `;
-
-// const LogoSection = styled.div`
-//   text-align: center;
-//     margin-bottom:0;
-
-
-//   h3 {
-//     color: #fff;
-//     font-size: 28px;
-//     font-weight: bold;
-//     margin-bottom: 20px;
-//   }
-// `;
 
 const LinksSection = styled.div`
   text-align: center;
-    margin-bottom:0px;
+  margin-bottom:0px;
   h3 {
     color: #fff;
     font-size: 20px;
@@ -54,13 +39,12 @@ const LinksSection = styled.div`
 const Ul = styled.ul`
   list-style: none;
   padding: 0;
-    margin-bottom:0px;
-
+  margin-bottom:0px;
   display: flex;
   align-content:space-between;
   align-items:space-between;
   justify-content: center;
-  gap: 30px; /* Horizontal spacing between the links */
+  gap: 30px;
 `;
 
 const Li = styled.li`
@@ -81,7 +65,6 @@ const A = styled.a`
 const FooterSocial = styled.div`
   text-align: center;
   margin-bottom:1px;
-
   h3 {
     color: #fff;
     font-size: 20px;
@@ -108,7 +91,6 @@ const Icon = styled.a`
 
 const FootBtm = styled.div`
   font-size: 16px;
-  // background-color:black;
   margin-top:20px;
   padding:0;
 
@@ -119,9 +101,8 @@ const FootBtm = styled.div`
 `;
 
 function Footer() {
-  const navigate = useNavigate();  // Using the navigate hook
+  const navigate = useNavigate();
 
-  // Function to handle navigation
   const handleNavigation = (path) => {
     navigate(path);
   };
@@ -129,12 +110,10 @@ function Footer() {
   return (
     <Main>
       <FooterContainer>
-        {/* Logo Section */}
         {/* <LogoSection>
           <h3>Crypto Tracker</h3>
         </LogoSection> */}
 
-        {/* Quick Links Section */}
         <LinksSection>
           <h3>Quick Links</h3>
           <Ul>
@@ -145,7 +124,6 @@ function Footer() {
           </Ul>
         </LinksSection>
 
-        {/* Follow Us Section */}
         <FooterSocial>
           <h3>Follow Us</h3>
           <IconWrapper>
@@ -156,12 +134,11 @@ function Footer() {
             <Icon href="https://github.com/tuharhirawat/CryptoTrackingClientServer.git" target="_blank" rel="noopener noreferrer"><FaGithub /></Icon>
           </IconWrapper>
         </FooterSocial>
-      </FooterContainer>
 
-      {/* Footer Bottom */}
-      <FootBtm>
-        {/* <p>&copy; 2024 Crypto Tracker. All Rights Reserved.</p> */}
-      </FootBtm>
+        <FootBtm>
+          <p>&copy; 2024 Crypto Tracker. All Rights Reserved.</p>
+        </FootBtm>
+      </FooterContainer>
     </Main>
   );
 }

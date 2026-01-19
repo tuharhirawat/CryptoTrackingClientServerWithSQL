@@ -65,27 +65,18 @@ const App = () => {
 
         <MainContent>
           <Routes>
-            {/* <Route path="/signup" element={<Signup />} />
-            <Route path="/login" element={<Login isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} setCurrentUser={setCurrentUser} />} />
+            <Route 
+              path="/login" 
+              element={isLoggedIn ? <Navigate to="/airdrop" replace /> : <Login isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} setCurrentUser={setCurrentUser} />} 
+            />
+            <Route 
+              path="/signup" 
+              element={isLoggedIn ? <Navigate to="/airdrop" replace /> : <Signup />} 
+            />
             <Route 
               path="/dashboard" 
-              element={
-              isLoggedIn ? (<Dashboard setIsLoggedIn={setIsLoggedIn} currentUser={currentUser} handleLogout={handleLogout} />) 
-              : (<Navigate to="/login" />)} 
-            /> */}
-            <Route 
-  path="/login" 
-  element={isLoggedIn ? <Navigate to="/airdrop" replace /> : <Login isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} setCurrentUser={setCurrentUser} />} 
-/>
-<Route 
-  path="/signup" 
-  element={isLoggedIn ? <Navigate to="/airdrop" replace /> : <Signup />} 
-/>
-<Route 
-  path="/dashboard" 
-  element={isLoggedIn ? <Dashboard setIsLoggedIn={setIsLoggedIn} currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" replace />} 
-/>
-
+              element={isLoggedIn ? <Dashboard setIsLoggedIn={setIsLoggedIn} currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" replace />} 
+            />
             <Route path="/wishlist" element={isLoggedIn ? <WishList currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" />} />
             <Route path="/airdrop" element={isLoggedIn ? <Airdrop currentUser={currentUser} /> : <Navigate to="/login" />} />
             <Route path="/myairdrops" element={isLoggedIn ? <MyAirdrops currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" />} />
@@ -113,41 +104,32 @@ const PageContainer = styled.div`
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-    // background-image: url("https://github.com/piyush-eon/react-crypto-tracker/blob/master/public/banner2.jpg?raw=true");
-   background-image: url("../banner2.jpg");
+  padding-top: 70px;
+  background-image: url("../banner2.jpg");
   background-size: cover;
   background-position: center;
-
 `;
-
 
 const HeaderWrapper = styled.header`
   position: fixed;
   top: 0;
   width: 100%;
   z-index: 1000;
-  // background: black;
+  height: 50px;
   color: white;
   padding: 10px 0;
 `;
 
 const FooterWrapper = styled.footer`
-  // background: black;
   color: white;
   padding: 0;
-  margin-top: 0;
+  margin: 0;
 `;
 
 const MainContent = styled.main`
   flex: 1;
+  margin-bottom: 0;
   overflow-y: auto;
-  padding: 0px;
-  margin-top: 30px; /* Adjust based on header height */
-  padding-bottom: 50px; /* Adjust for footer space */
-  // background-image: url("https://github.com/piyush-eon/react-crypto-tracker/blob/master/public/banner2.jpg?raw=true");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  `;
+`;
 
 export default App;
