@@ -221,7 +221,7 @@ const PageContainer = styled.div`
   padding: 15px;
   box-sizing: border-box;
   margin: 0;
-  animation: ${fadeIn} 1s ease-in-out;
+  // animation: ${fadeIn} 1s ease-in-out;
 
   @media (max-width: 480px) {
     padding: 10px;
@@ -240,7 +240,7 @@ const SignupForm = styled.form`
   border-radius: 12px;
   border: 1px solid #ccc;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-  animation: ${slideIn} 1s ease-in-out;
+  // animation: ${slideIn} 1s ease-in-out;
 
   display: flex;
   flex-direction: column;

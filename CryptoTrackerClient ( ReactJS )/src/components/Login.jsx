@@ -131,7 +131,7 @@ const PageContainer = styled.div`
   padding: 15px;
   box-sizing: border-box;
   margin: 0;
-  animation: ${fadeIn} 1s ease-in-out;
+  // animation: ${fadeIn} 1s ease-in-out;
 
   @media (max-width: 480px) {
     padding: 10px;
@@ -153,7 +153,7 @@ const LoginForm = styled.form`
   display: flex;
   flex-direction: column;
   align-items: center;
-  animation: ${slideIn} 1s ease-in-out;
+  // animation: ${slideIn} 1s ease-in-out;
   gap: 6px;
   transition: all 0.3s ease;
 
