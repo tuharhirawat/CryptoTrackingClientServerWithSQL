@@ -8,7 +8,7 @@ const Main = styled.footer`
   padding: 30px 20px;
   font-size: 14px;
   text-align: center;
-  z-index: 
+  margin: 0;
 
   @media (max-width: 768px) {
     padding: 30px 20px;
