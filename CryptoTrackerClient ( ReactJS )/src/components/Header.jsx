@@ -44,7 +44,7 @@ const Header = ({ isLoggedIn, handleLogout }) => {
             <NavLink onClick={() => handleNavigation("/airdrop")}>Airdrop</NavLink>
             <NavLink onClick={() => handleNavigation("/wishlist")}>WishList</NavLink>
             <NavLink onClick={() => handleNavigation("/profile")}>Profile</NavLink>
-            <NavLink onClick={() => handleNavigation("/pricing")}>Pricing</NavLink>
+            {/* <NavLink onClick={() => handleNavigation("/pricing")}>Pricing</NavLink> */}
             <Button onClick={handleLogout}>Logout</Button>
           </>
         ) : (

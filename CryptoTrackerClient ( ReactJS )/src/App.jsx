@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import styled from "styled-components";
 import Signup from "./components/Signup";
 import Login from "./components/Login";
-import Dashboard from "./components/Dashboard";
 import Header from "./components/Header";
 import Footer from "./components/Footer";
 import Home from "./components/Home";
@@ -11,12 +10,13 @@ import About from "./components/About";
 import PrivacyPolicy from "./Pages/PrivacyPolicy";
 import TermsOfService from "./Pages/TermsOfService";
 import Contact from "./Pages/Contact";
-import Pricing from "./components/Pricing";
+// import Pricing from "./components/Pricing";
 import CoinDetails from "./components/CoinDetails";
 import News from "./components/News";
 import WishList from "./components/Wishlist";
 import Airdrop from "./components/Airdrop";
 import MyAirdrops from "./components/MyAirdrops";
+import Profile from "./components/Profile";
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
@@ -74,13 +74,13 @@ const App = () => {
               element={isLoggedIn ? <Navigate to="/airdrop" replace /> : <Signup />} 
             />
             <Route 
-              path="/dashboard" 
-              element={isLoggedIn ? <Dashboard setIsLoggedIn={setIsLoggedIn} currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" replace />} 
+              path="/profile" 
+              element={isLoggedIn ? <Profile setIsLoggedIn={setIsLoggedIn} currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" replace />} 
             />
             <Route path="/wishlist" element={isLoggedIn ? <WishList currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" />} />
             <Route path="/airdrop" element={isLoggedIn ? <Airdrop currentUser={currentUser} /> : <Navigate to="/login" />} />
             <Route path="/myairdrops" element={isLoggedIn ? <MyAirdrops currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" />} />
-            <Route path="/pricing" element={isLoggedIn ? <Pricing currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" />} />
+            {/* <Route path="/pricing" element={isLoggedIn ? <Pricing currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" />} /> */}
             <Route path="/coin/:coinId" element={isLoggedIn ? <CoinDetails currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" />} />
             <Route path="/news" element={<News />} />
             <Route path="/home" element={<Home />} />
