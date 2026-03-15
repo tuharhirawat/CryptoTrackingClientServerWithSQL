@@ -1,87 +1,59 @@
-import React, { useState, useEffect } from "react";
-import axios from "axios";
+import React, { useState } from "react";
 import styled, { keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "../supabaseClient";
 import FormInput from "../Components/FormInput";
+import { loginUser } from "../Services/userService";
 
-const Login = ({ setIsLoggedIn, setCurrentUser }) => {
-  const [formData, setFormData] = useState({ email: "", password: "" });
+const Login = () => {
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn");
-    if (isLoggedIn) {
-      navigate("/news");
-    }
-  }, [navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+    setLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: formData.email,
-      password: formData.password,
-    });
-
-    if (error) {
-      setError(error.message);
-      return;
-    }
-
-    const user = data.user;
-
-    const { data: profile, error: fetchError } = await supabase
-      .from("profiles")
-      .select("id")
-      .eq("id", user.id)
-      .single();
-
-    if (!profile && fetchError?.code === "PGRST116") {
-      const pendingProfile = JSON.parse(
-        localStorage.getItem("pendingProfile")
+    try {
+      const { error } = await loginUser(
+        formData.email,
+        formData.password
       );
 
-      const { error: insertError } = await supabase
-        .from("profiles")
-        .insert({
-          id: user.id,
-          username:
-            pendingProfile?.username ||
-            user.email.split("@")[0],
-          mobile: pendingProfile?.mobile || "",
-        });
-
-      if (insertError) {
-        setError(insertError.message);
+      if (error) {
+        setError(error.message);
+        setLoading(false);
         return;
       }
 
-      localStorage.removeItem("pendingProfile");
+      navigate("/airdrop");
+    } catch (err) {
+      setError("Unable to fetch profile data.");
     }
 
-    setIsLoggedIn(true);
-    setCurrentUser(user);
-
-    localStorage.setItem("isLoggedIn", true);
-    localStorage.setItem("currentUser", JSON.stringify(user));
-
-    navigate("/airdrop");
+    setLoading(false);
   };
 
   return (
     <PageContainer>
       <LoginForm onSubmit={handleSubmit}>
         <h2>Login</h2>
+
         <FormInput
           type="email"
           placeholder="Email"
           name="email"
           value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          onChange={(e) =>
+            setFormData({ ...formData, email: e.target.value })
+          }
         />
+
         <FormInput
           type="password"
           placeholder="Password"
@@ -91,7 +63,11 @@ const Login = ({ setIsLoggedIn, setCurrentUser }) => {
             setFormData({ ...formData, password: e.target.value })
           }
         />
-        <SubmitButton type="submit">Login</SubmitButton>
+
+        <SubmitButton type="submit" disabled={loading}>
+          {loading ? "Logging In..." : "Login"}
+        </SubmitButton>
+
         {error && <ErrorText>{error}</ErrorText>}
       </LoginForm>
     </PageContainer>
@@ -208,7 +184,6 @@ const SubmitButton = styled.button`
   border-radius: 6px;
   border: none;
   cursor: pointer;
-
   background-color: rgb(60, 50, 54);
   color: white;
   transition: all 0.3s ease;

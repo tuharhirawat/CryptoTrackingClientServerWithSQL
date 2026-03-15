@@ -2,55 +2,65 @@ import React, { useState } from "react";
 import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 
-const Header = ({ isLoggedIn, handleLogout }) => {
+const Header = ({ user, handleLogout }) => {
   const navigate = useNavigate();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
-
-  const closeMenu = () => {
-    setIsMenuOpen(false);
-  };
+  const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+  const closeMenu = () => setIsMenuOpen(false);
 
   const handleNavigation = (path) => {
     navigate(path);
-    setIsMenuOpen(false); 
+    setIsMenuOpen(false);
   };
 
   return (
     <HeaderContainer>
-      <Logo onClick={() => handleNavigation(isLoggedIn ? "/airdrop" : "/signup")}>
+      <Logo onClick={() => handleNavigation(user ? "/profile" : "/signup")}>
         Crypto Tracker
       </Logo>
+
       <HamburgerIcon onClick={toggleMenu}>
         <div></div>
         <div></div>
         <div></div>
       </HamburgerIcon>
+
       <Nav isMenuOpen={isMenuOpen}>
         {isMenuOpen && (
           <CloseButton onClick={closeMenu}>
             <span>&#10005;</span>
           </CloseButton>
         )}
+
         <NavLink onClick={() => handleNavigation("/home")}>Home</NavLink>
         <NavLink onClick={() => handleNavigation("/news")}>News</NavLink>
         <NavLink onClick={() => handleNavigation("/about")}>About</NavLink>
-        {isLoggedIn ? (
+
+        {user ? (
           <>
-            <NavLink onClick={() => handleNavigation("/myairdrops")}>My-Airdrops</NavLink>
-            <NavLink onClick={() => handleNavigation("/airdrop")}>Airdrop</NavLink>
-            <NavLink onClick={() => handleNavigation("/wishlist")}>WishList</NavLink>
-            <NavLink onClick={() => handleNavigation("/profile")}>Profile</NavLink>
-            {/* <NavLink onClick={() => handleNavigation("/pricing")}>Pricing</NavLink> */}
+            <NavLink onClick={() => handleNavigation("/myairdrops")}>
+              My-Airdrops
+            </NavLink>
+            <NavLink onClick={() => handleNavigation("/airdrop")}>
+              Airdrop
+            </NavLink>
+            <NavLink onClick={() => handleNavigation("/wishlist")}>
+              WishList
+            </NavLink>
+            <NavLink onClick={() => handleNavigation("/profile")}>
+              Profile
+            </NavLink>
             <Button onClick={handleLogout}>Logout</Button>
           </>
         ) : (
           <>
-            <NavLink onClick={() => handleNavigation("/signup")}>Signup</NavLink>
-            <NavLink onClick={() => handleNavigation("/login")}>Login</NavLink>
+            <NavLink onClick={() => handleNavigation("/signup")}>
+              Signup
+            </NavLink>
+            <NavLink onClick={() => handleNavigation("/login")}>
+              Login
+            </NavLink>
           </>
         )}
       </Nav>

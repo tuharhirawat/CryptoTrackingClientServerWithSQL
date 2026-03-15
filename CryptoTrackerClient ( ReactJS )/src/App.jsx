@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import styled from "styled-components";
+import { supabase } from "./supabaseClient";
+import { logoutUser } from "./Services/userService";
+
 import Signup from "./components/Signup";
 import Login from "./components/Login";
 import Header from "./components/Header";
@@ -19,76 +22,99 @@ import MyAirdrops from "./components/MyAirdrops";
 import Profile from "./components/Profile";
 
 const App = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(() => {
-    const storedLoggedIn = localStorage.getItem("isLoggedIn");
-    return storedLoggedIn === "true";
-  });
-
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const storedUser = localStorage.getItem("currentUser");
-      return storedUser ? JSON.parse(storedUser) : null;
-    } catch (error) {
-      console.error("Error parsing currentUser from localStorage:", error);
-      return null;
-    }
-  });
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setCurrentUser(null);
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("currentUser");
-  };
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const syncLoginState = (event) => {
-      if (event.key === "isLoggedIn" || event.key === "currentUser") {
-        setIsLoggedIn(localStorage.getItem("isLoggedIn") === "true");
-        const storedUser = localStorage.getItem("currentUser");
-        setCurrentUser(storedUser ? JSON.parse(storedUser) : null);
-      }
+    const getSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      setUser(session?.user ?? null);
+      setLoading(false);
     };
 
-    window.addEventListener("storage", syncLoginState);
-    return () => {
-      window.removeEventListener("storage", syncLoginState);
-    };
+    getSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
+
+  const handleLogout = async () => {
+    await logoutUser();
+    setUser(null);
+  };
+
+  if (loading) return null;
 
   return (
     <Router>
       <PageContainer>
         <HeaderWrapper>
-          <Header isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} handleLogout={handleLogout} />
+          <Header user={user} handleLogout={handleLogout} />
         </HeaderWrapper>
 
         <MainContent>
           <Routes>
-            <Route 
-              path="/login" 
-              element={isLoggedIn ? <Navigate to="/airdrop" replace /> : <Login isLoggedIn={isLoggedIn} setIsLoggedIn={setIsLoggedIn} setCurrentUser={setCurrentUser} />} 
+
+            <Route
+              path="/login"
+              element={!user ? <Login /> : <Navigate to="/profile" replace />}
             />
-            <Route 
-              path="/signup" 
-              element={isLoggedIn ? <Navigate to="/airdrop" replace /> : <Signup />} 
+
+            <Route
+              path="/signup"
+              element={!user ? <Signup /> : <Navigate to="/profile" replace />}
             />
-            <Route 
-              path="/profile" 
-              element={isLoggedIn ? <Profile setIsLoggedIn={setIsLoggedIn} currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" replace />} 
+
+            <Route
+              path="/profile"
+              element={user ? <Profile user={user} /> : <Navigate to="/login" replace />}
             />
-            <Route path="/wishlist" element={isLoggedIn ? <WishList currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" />} />
-            <Route path="/airdrop" element={isLoggedIn ? <Airdrop currentUser={currentUser} /> : <Navigate to="/login" />} />
-            <Route path="/myairdrops" element={isLoggedIn ? <MyAirdrops currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" />} />
-            {/* <Route path="/pricing" element={isLoggedIn ? <Pricing currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" />} /> */}
-            <Route path="/coin/:coinId" element={isLoggedIn ? <CoinDetails currentUser={currentUser} handleLogout={handleLogout} /> : <Navigate to="/login" />} />
+
+            <Route
+              path="/wishlist"
+              element={user ? <WishList user={user} /> : <Navigate to="/login" />}
+            />
+
+            <Route
+              path="/airdrop"
+              element={user ? <Airdrop user={user} /> : <Navigate to="/login" />}
+            />
+
+            <Route
+              path="/myairdrops"
+              element={user ? <MyAirdrops user={user} /> : <Navigate to="/login" />}
+            />
+
+            {/* <Route 
+              path="/pricing" 
+              element={user ? <Pricing user={user} handleLogout={handleLogout} /> : <Navigate to="/login" />} 
+            /> */}
+
+            <Route
+              path="/coin/:coinId"
+              element={user ? <CoinDetails user={user} /> : <Navigate to="/login" />}
+            />
+
             <Route path="/news" element={<News />} />
             <Route path="/home" element={<Home />} />
             <Route path="/about" element={<About />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/contact" element={<Contact />} />
-            <Route path="*" element={<Navigate to={isLoggedIn ? "/dashboard" : "/signup"} />} />
+
+            <Route
+              path="*"
+              element={<Navigate to={user ? "/profile" : "/signup"} />}
+            />
+
           </Routes>
         </MainContent>
 

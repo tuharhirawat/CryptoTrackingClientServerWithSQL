@@ -2,7 +2,12 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styled, { keyframes } from "styled-components";
 import FormInput from "../Components/FormInput";
-import { supabase } from "../supabaseClient";
+import {
+  signupUser,
+  createProfile,
+  checkExistingProfile,
+  logoutUser,
+} from "../Services/userService";
 
 const Signup = () => {
   const [formData, setFormData] = useState({
@@ -18,7 +23,7 @@ const Signup = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const navigate = useNavigate();
 
-  const validateInput = async (name, value) => {
+  const validateInput = (name, value) => {
     if (name === "password") {
       if (
         !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%?&])[A-Za-z\d@$!%?&]{8,}$/.test(
@@ -36,13 +41,12 @@ const Signup = () => {
     return "";
   };
 
-  const handleChange = async (e) => {
+  const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
-    setErrors((prev) => ({ ...prev, [name]: "" }));
 
-    const error = await validateInput(name, value);
-    if (error) setErrors((prev) => ({ ...prev, [name]: error }));
+    const error = validateInput(name, value);
+    setErrors((prev) => ({ ...prev, [name]: error }));
   };
 
   const validateForm = () => {
@@ -61,6 +65,7 @@ const Signup = () => {
 
     if (!formData.password)
       validationErrors.password = "Password is required.";
+
     if (!formData.confirmPassword)
       validationErrors.confirmPassword = "Confirm Password is required.";
 
@@ -73,55 +78,60 @@ const Signup = () => {
     if (!validateForm()) return;
 
     setFormStatus("loading");
+    setErrors({});
+    setSuccessMessage("");
 
-    const { data: existingProfile } = await supabase
-      .from("profiles")
-      .select("id")
-      .or(
-        `username.eq.${formData.name},mobile.eq.${formData.mobile}`
+    try {
+      const { data: existingProfile } = await checkExistingProfile(
+        formData.name,
+        formData.mobile
       );
 
-    if (existingProfile?.length > 0) {
+      if (existingProfile?.length > 0) {
+        setFormStatus("error");
+        setErrors({
+          general: "Username or mobile already exists.",
+        });
+        return;
+      }
+
+      const { data, error } = await signupUser(
+        formData.email,
+        formData.password
+      );
+
+      if (error) {
+        setFormStatus("error");
+        setErrors({ general: error.message });
+        return;
+      }
+
+      if (!data?.user) {
+        setFormStatus("error");
+        setErrors({ general: "Signup failed. Please try again." });
+        return;
+      }
+
+      const { error: profileError } = await createProfile(
+        data.user.id,
+        formData.name,
+        formData.mobile
+      );
+
+      if (profileError) {
+        setFormStatus("error");
+        setErrors({ general: profileError.message });
+        return;
+      }
+
+      setFormStatus("success");
+      setSuccessMessage("Signup successful! Please verify your email.");
+
+      setTimeout(() => navigate("/profile"), 2000);
+    } catch (err) {
       setFormStatus("error");
-      setErrors({
-        general: "User already exists. Please login instead.",
-      });
-      // setTimeout(() => navigate("/login"), 2000);
-      return;
+      setErrors({ general: "Something went wrong. Try again." });
     }
-
-    const { data, error } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-    });
-
-    if (!data?.user) {
-      setFormStatus("error");
-      setErrors({
-        general: "User already exists. Please login instead.",
-      });
-      // setTimeout(() => navigate("/login"), 2000);
-      return;
-    }
-
-    if (error) {
-      setFormStatus("error");
-      setErrors({ general: error.message });
-      return;
-    }
-
-    localStorage.setItem(
-      "pendingProfile",
-      JSON.stringify({
-        username: formData.name,
-        mobile: formData.mobile,
-      })
-    );
-
-    setFormStatus("success");
-    setSuccessMessage("Signup successful! Please verify your email.");
-
-    setTimeout(() => navigate("/login"), 2000);
   };
 
   return (

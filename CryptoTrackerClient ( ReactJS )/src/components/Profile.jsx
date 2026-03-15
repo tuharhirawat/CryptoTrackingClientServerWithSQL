@@ -1,221 +1,300 @@
 import React, { useState, useEffect } from "react";
-import styled, { createGlobalStyle } from "styled-components"; // Import GlobalStyle
+import styled, { keyframes } from "styled-components";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import { supabase } from "../supabaseClient";
+import {
+  getProfile,
+  updateProfile,
+  deleteUserAccount,
+  updateUserPassword
+} from "../Services/userService";
 
-const Profile = ({ setIsLoggedIn, currentUser }) => {
-  const [user, setUser] = useState(currentUser || null);
-  const [editing, setEditing] = useState(false);
-  const [updatedUser, setUpdatedUser] = useState({});
-  const [changePassword, setChangePassword] = useState(false);
-  const [passwordData, setPasswordData] = useState({ currentPassword: "", newPassword: "" });
+const Profile = () => {
+
+  const [authUser, setAuthUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+  const [profileImage, setProfileImage] = useState(null);
+
+  const [isEditProfile, setIsEditProfile] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [isDeleteProfile, setIsDeleteProfile] = useState(false);
+
+  const [passwordData, setPasswordData] = useState({ newPassword: "" });
   const [errorMessage, setErrorMessage] = useState("");
-  const [confirmationVisible, setConfirmationVisible] = useState(false);
+
   const navigate = useNavigate();
 
   useEffect(() => {
-    const userData = localStorage.getItem("currentUser");
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      setUpdatedUser(parsedUser);
-    } else {
-      navigate("/login");
-    }
+
+    const fetchUser = async () => {
+
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        navigate("/login", { replace: true });
+        return;
+      }
+
+      setAuthUser(session.user);
+
+      const { data, error } = await getProfile(session.user.id);
+
+      if (error) {
+        setErrorMessage("Failed to fetch profile.");
+        return;
+      }
+
+      setProfile(data);
+    };
+
+    fetchUser();
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("currentUser");
-    localStorage.removeItem("isLoggedIn");
-    setIsLoggedIn(false);
-    navigate("/login");
-  };
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === "Escape") {
+        closeAllModals();
+      }
+    };
 
-  const handleEditToggle = () => {
-    setEditing(!editing);
-    setChangePassword(false);
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, []);
+
+  const closeAllModals = () => {
+    setIsEditProfile(false);
+    setIsChangingPassword(false);
+    setIsDeleteProfile(false);
+    setPasswordData({ newPassword: "" });
+    setErrorMessage("");
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setUpdatedUser((prevState) => ({ ...prevState, [name]: value }));
-  };
-
-  const handlePasswordChange = (e) => {
-    const { name, value } = e.target;
-    setPasswordData((prevState) => ({ ...prevState, [name]: value }));
-  };
-
-  const validateInputs = () => {
-    if (!updatedUser.username || !updatedUser.email || !updatedUser.mobileNumber) {
-      setErrorMessage("All fields are required.");
-      return false;
-    }
-
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(updatedUser.email)) {
-      setErrorMessage("Please enter a valid email address.");
-      return false;
-    }
-
-    setErrorMessage("");
-    return true;
-  };
-
-  const fetchUserData = async () => {
-    try {
-      const response = await axios.get(`http://localhost:5232/api/Users/${user.id}`);
-      if (response.status === 200) {
-        setUpdatedUser(response.data);
-      }
-    } catch (err) {
-      console.error("Error fetching user data:", err);
-      alert("Failed to fetch user data. Please try again.");
-    }
+    setProfile(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleUpdateProfile = async () => {
-    if (!validateInputs()) return;
-
-    try {
-      const response = await axios.put(`http://localhost:5232/api/Users/${user.id}`, updatedUser);
-      if (response.status === 200) {
-        localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-        setUser(updatedUser);
-        setEditing(false);
-        alert("Profile updated successfully!");
-      }
-    } catch (err) {
-      console.error("Error updating profile:", err);
-      alert("Failed to update profile. Please try again.");
+    setErrorMessage("");
+    if (!profile.username || !profile.mobile) {
+      setErrorMessage("All fields are required.");
+      return;
     }
+
+    const { error } = await updateProfile(authUser.id, {
+      username: profile.username,
+      mobile: profile.mobile,
+    });
+
+    if (error) {
+      setErrorMessage("Unable to update profile. Please try again.");
+      return;
+    }
+
+    closeAllModals();
+  };
+
+  const handleUpdatePassword = async () => {
+    setErrorMessage("");
+
+    if (!passwordData.newPassword) {
+      setErrorMessage("Password cannot be empty.");
+      return;
+    }
+
+    const { error } = await updateUserPassword(passwordData.newPassword);
+
+    if (error) {
+      setErrorMessage("Unable to update password. Please try again.");
+      return;
+    }
+
+    closeAllModals();
   };
 
   const handleDeleteProfile = async () => {
-    try {
-      const response = await axios.delete(`http://localhost:5232/api/Users/${user.id}`);
-      if (response.status === 204) {
-        localStorage.removeItem("currentUser");
-        localStorage.removeItem("isLoggedIn");
-        setIsLoggedIn(false);
-        navigate("/signup");
-        alert("Profile deleted successfully.");
-      }
-    } catch (err) {
-      console.error("Error deleting profile:", err);
-      alert("Failed to delete profile. Please try again.");
+
+    setErrorMessage("");
+
+    if (!passwordData.newPassword) {
+      setErrorMessage("Please enter your password to confirm deletion.");
+      return;
     }
+
+    const { error } = await deleteUserAccount(passwordData.newPassword);
+
+    if (error) {
+      setErrorMessage("Unable to delete account. Please verify your password and try again.");
+      return;
+    }
+
+    await supabase.auth.signOut();
+    navigate("/login");
   };
 
-  if (!user) {
-    return <p>Loading...</p>;
-  }
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setProfileImage(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  if (!profile) return <LoadingText>Loading...</LoadingText>;
 
   return (
-    <>
-      <GlobalStyle />
-      <Background>
-        <ProfileContainer confirmationVisible={confirmationVisible}>
-          <h2>Welcome, {user.username}</h2>
+    <Background>
+      <Card>
+        <Title>My Profile</Title>
 
-          {confirmationVisible && (
-            <ConfirmationBox>
-              <ConfirmationMessage>
-                Are you sure you want to delete your profile?
-              </ConfirmationMessage>
-              <ButtonContainer>
-                <DeleteConfirmationButton onClick={handleDeleteProfile}>Yes</DeleteConfirmationButton>
-                <CancelConfirmationButton onClick={() => setConfirmationVisible(false)}>No</CancelConfirmationButton>
-              </ButtonContainer>
-            </ConfirmationBox>
-          )}
+        <ProfileSection>
+          <ProfileAvatar>
+            {profileImage ? (
+              <AvatarImage src={profileImage} alt="Profile" />
+            ) : (
+              profile?.username?.charAt(0)?.toUpperCase() || "U"
+            )}
+          </ProfileAvatar>
 
-          {editing ? (
-            <div>
-              {errorMessage && <ErrorMessage>{errorMessage}</ErrorMessage>}
-              <FormInput
-                type="text"
+          <UploadLabel>
+            Upload Photo
+            <HiddenInput
+              type="file"
+              accept="image/*"
+              onChange={handleImageUpload}
+            />
+          </UploadLabel> <br/>
+
+          <Info><span>Email:</span> {authUser.email}</Info>
+          <Info><span>Username:</span> {profile.username}</Info>
+          <Info><span>Mobile:</span> {profile.mobile}</Info>
+        </ProfileSection>
+
+
+        <PrimaryButton onClick={() => { setErrorMessage(""); setIsEditProfile(true); }}>
+          Edit Profile
+        </PrimaryButton>
+
+        <SecondaryButton onClick={() => { setErrorMessage(""); setIsChangingPassword(true); }}>
+          Change Password
+        </SecondaryButton>
+
+        <DangerButton onClick={() => { setErrorMessage(""); setIsDeleteProfile(true); }}>
+          Delete Profile
+        </DangerButton>
+
+      </Card>
+
+      {isEditProfile && (
+        <ModalOverlay onClick={closeAllModals}>
+          <ModalBox onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>Edit Profile</ModalTitle>
+
+            {errorMessage && <ErrorText>{errorMessage}</ErrorText>}
+
+            <FormWrapper>
+              <CenteredInput
                 name="username"
-                value={updatedUser.username || ""}
-                placeholder="Name"
+                value={profile.username}
+                placeholder="Username"
                 onChange={handleInputChange}
               />
-              <FormInput
-                type="text"
-                name="mobileNumber"
-                value={updatedUser.mobileNumber || ""}
-                placeholder="Mobile Number"
+
+              <CenteredInput
+                name="mobile"
+                value={profile.mobile}
+                placeholder="Mobile"
                 onChange={handleInputChange}
               />
-              <FormInput
-                type="email"
-                name="email"
-                value={updatedUser.email || ""}
-                placeholder="Email"
-                onChange={handleInputChange}
-              />
-              <ActionButton onClick={handleUpdateProfile}>Save</ActionButton>
-              <CancelButton onClick={handleEditToggle}>Cancel</CancelButton>
-            </div>
-          ) : changePassword ? (
-            <div>
-              <FormInput
+            </FormWrapper>
+
+            <PrimaryButton onClick={handleUpdateProfile}>
+              Save Changes
+            </PrimaryButton>
+
+            <SecondaryButton onClick={closeAllModals}>
+              Cancel
+            </SecondaryButton>
+          </ModalBox>
+        </ModalOverlay>
+      )}
+
+      {isChangingPassword && (
+        <ModalOverlay onClick={closeAllModals}>
+          <ModalBox onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>Change Password</ModalTitle>
+
+            {errorMessage && <ErrorText>{errorMessage}</ErrorText>}
+
+            <FormWrapper>
+              <CenteredInput
                 type="password"
-                name="currentPassword"
-                placeholder="Current Password"
-                value={passwordData.currentPassword}
-                onChange={handlePasswordChange}
-              />
-              <FormInput
-                type="password"
-                name="newPassword"
                 placeholder="New Password"
                 value={passwordData.newPassword}
-                onChange={handlePasswordChange}
+                onChange={(e) =>
+                  setPasswordData({ newPassword: e.target.value })
+                }
               />
-              <ActionButton onClick={handleUpdatePassword}>Update Password</ActionButton>
-              <CancelButton onClick={() => setChangePassword(false)}>Cancel</CancelButton>
-            </div>
-          ) : (
-            <ProfileDetails>
-              <p>
-                <strong>Name:</strong> {user.username}
-              </p>
-              <p>
-                <strong>Email:</strong> {user.email}
-              </p>
-              <p>
-                <strong>Mobile:</strong> {user.mobileNumber}
-              </p>
-              <EditButton onClick={handleEditToggle}>Edit Profile</EditButton>
-              <DeleteButton onClick={() => setConfirmationVisible(true)}>Delete Profile</DeleteButton>
-              <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
-            </ProfileDetails>
-          )}
-        </ProfileContainer>
-      </Background>
-    </>
+            </FormWrapper>
+
+            <PrimaryButton onClick={handleUpdatePassword}>
+              Update Password
+            </PrimaryButton>
+
+            <SecondaryButton onClick={closeAllModals}>
+              Cancel
+            </SecondaryButton>
+          </ModalBox>
+        </ModalOverlay>
+      )}
+
+      {isDeleteProfile && (
+        <ModalOverlay onClick={closeAllModals}>
+          <ModalBox onClick={(e) => e.stopPropagation()}>
+            <ModalTitle>Delete Account</ModalTitle>
+            {errorMessage && <ErrorText>{errorMessage}</ErrorText>}
+
+            <FormWrapper>
+              <CenteredInput
+                type="password"
+                placeholder="Enter Password"
+                value={passwordData.newPassword}
+                onChange={(e) =>
+                  setPasswordData({ newPassword: e.target.value })
+                }
+              />
+            </FormWrapper>
+
+            <DangerButton onClick={handleDeleteProfile}>
+              Confirm Delete
+            </DangerButton>
+
+            <SecondaryButton onClick={closeAllModals}>
+              Cancel
+            </SecondaryButton>
+          </ModalBox>
+        </ModalOverlay>
+      )}
+    </Background>
   );
 };
 
 export default Profile;
 
-// Global style to define keyframes for animations
-const GlobalStyle = createGlobalStyle`
-  @keyframes gradientAnimation {
-    0% {
-      background-position: 0% 50%;
-    }
-    30% {
-      background-position: 100% 50%;
-    }
-    60%{
-      background-position: 100% 50%;
-    }
-    100% {
-      background-position: 0% 50%;
-    }
-  }
+const fadeIn = keyframes`
+  from { opacity: 0; }
+  to { opacity: 1; }
+`;
+
+const scaleIn = keyframes`
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 `;
 
 const Background = styled.div`
@@ -223,186 +302,159 @@ const Background = styled.div`
   display: flex;
   justify-content: center;
   align-items: center;
-  // background: linear-gradient(45deg, #ff6f61, #ffcc00, #ff0099);
-  background-size: 400% 400%;
-  animation: gradientAnimation 10s ease infinite;
-  color: white;
-  padding: 20px;
-  transition: background 0.5s ease-in-out;
 `;
 
-const ProfileContainer = styled.div`
-  position: relative;
-  background: linear-gradient(45deg, #ff6f61, #ffcc00, #ff0099);
-  background-size: 400% 400%;
-  animation: gradientAnimation 10s ease infinite;
-  padding: 30px;
-  width: 80%;
-  max-width: 500px;
+const Card = styled.div`
+  width: 420px;
+  padding: 40px;
   border-radius: 20px;
-  box-shadow: 0 0 30px rgba(0, 0, 0, 0.4);
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(15px);
   text-align: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  overflow: hidden;
-  box-sizing: border-box;
-
-  // Disable hover effect when confirmation box is visible
-  &:hover {
-    transform: ${({ confirmationVisible }) => (confirmationVisible ? 'none' : 'scale(1.05)')};
-    box-shadow: ${({ confirmationVisible }) => (confirmationVisible ? 'none' : '0 0 50px rgba(0, 0, 0, 0.5)')};
-  }
+  color: white;
 `;
 
-
-const ProfileDetails = styled.div`
-  margin: 20px 0;
-  text-align: left;
-  padding: 10px;
-  display:flex;
-  flex-direction:column;
-  font-size: 1.2rem;
-
-  p {
-    margin-left:10px;
-    color: #fff;
-    font-size: 1.1rem;
-  }
+const Title = styled.h2`
+  margin-bottom: 25px;
 `;
 
-const FormInput = styled.input`
-  width: 85%;
-  padding: 16px;
-  margin: 15px;
-  border: none;
-  border-radius: 10px;
-  background-color: #333;
-  color: #fff;
-  font-size: 1rem;
-  transition: all 0.3s ease;
-
-  &::placeholder {
-    color: #bbb;
-  }
-
-  &:focus {
-    outline: none;
-    border: 2px solid #ffcc00;
-    background-color: #444;
-  }
-`;
-
-const ActionButton = styled.button`
-  background-color: #ff6f61;
-  color: #fff;
-  border: none;
-  padding: 15px 25px;
-  font-size: 1.1rem;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: 0.3s;
-  margin-top: 15px;
-  width: 100%;
-
-  &:hover {
-    background-color: #ff004f;
-    transform: scale(1.05);
-  }
-`;
-
-const EditButton = styled(ActionButton)`
-  background-color: #4CAF50;
-
-  &:hover {
-    background-color: #45a049;
-  }
-`;
-
-const CancelButton = styled(ActionButton)`
-  background-color: #777;
-
-  &:hover {
-    background-color: #555;
-  }
-`;
-
-const DeleteButton = styled(ActionButton)`
-  background-color: #ff0000;
-
-  &:hover {
-    background-color: #cc0000;
-  }
-`;
-
-const LogoutButton = styled(ActionButton)`
-  background-color: #007bff;
-
-  &:hover {
-    background-color: #0056b3;
-  }
-`;
-
-const ErrorMessage = styled.p`
-  color: red;
-  font-size: 1.2rem;
-`;
-
-
-const ConfirmationBox = styled.div`
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7); /* Darker background */
+const ProfileSection = styled.div`
+  margin-bottom: 25px;
   display: flex;
-  flex-direction:column;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const ProfileAvatar = styled.div`
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+  color: white;
+  margin-bottom: 12px;
+  box-shadow: 0 0 20px rgba(180, 200, 150, 4);
+`;
+
+const AvatarImage = styled.img`
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+`;
+
+const UploadLabel = styled.label`
+  margin-top: 10px;
+  font-size: 13px;
+  cursor: pointer;
+  color: #00c896;
+  transition: 0.3s;
+
+  &:hover {
+    opacity: 0.8;
+  }
+`;
+
+const HiddenInput = styled.input`
+  display: none;
+`;
+
+const Info = styled.p`
+  margin: 8px 0;
+  text-align: center;
+`;
+
+const ModalOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
-  padding: 20px;
+  animation: ${fadeIn} 0.2s ease;
+  z-index: 999;
 `;
 
-const ConfirmationMessage = styled.h3`
-  color: white;
-  font-size: 1.6rem;
-  font-weight: bold;
-  margin-bottom: 20px;
+const ModalBox = styled.div`
+  width: 360px;
+  padding: 30px;
+  border-radius: 18px;
+  background: rgba(20,20,20,0.95);
+  animation: ${scaleIn} 0.2s ease;
   text-align: center;
 `;
 
-const ButtonContainer = styled.div`
+const ModalTitle = styled.h3`
+  margin-bottom: 20px;
+  color: white;
+`;
+
+const FormWrapper = styled.div`
   display: flex;
-  gap: 15px;
-  justify-content: center;
-  margin-top: 20px;
+  flex-direction: column;
+  align-items: center;  /* TRUE CENTER */
+  width: 100%;
 `;
 
-const DeleteConfirmationButton = styled.button`
-  background-color: #777;
+const CenteredInput = styled.input`
+  width: 80%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255,255,255,0.08);
   color: white;
-  padding: 12px 20px;
-  font-size: 1rem;
+  text-align: center;   /* TEXT centered */
+`;
+
+const BaseButton = styled.button`
+  width: 80%;
+  padding: 10px;
+  border-radius: 8px;
   border: none;
   cursor: pointer;
-  border-radius: 8px;
-  transition: background-color 0.3s ease;
+  margin: 6px auto;
+  display: block;
+`;
+
+const PrimaryButton = styled(BaseButton)`
+  background: #00c896;
+  color: white;
 
   &:hover {
-    background-color: gold;
+    background: #00a67e;
   }
 `;
 
-const CancelConfirmationButton = styled.button`
-  background-color: #777;
+const SecondaryButton = styled(BaseButton)`
+  background: #555;
   color: white;
-  padding: 12px 20px;
-  font-size: 1rem;
-  border: none;
-  cursor: pointer;
-  border-radius: 8px;
-  transition: background-color 0.3s ease;
 
   &:hover {
-    background-color: gold;
+    background: #444;
   }
+`;
+
+const DangerButton = styled(BaseButton)`
+  background: #ff4d4f;
+  color: white;
+
+  &:hover {
+    background: #d9363e;
+  }
+`;
+
+const ErrorText = styled.p`
+  color: #ff4d4f;
+  margin-bottom: 15px;
+`;
+
+const LoadingText = styled.p`
+  text-align: center;
+  margin-top: 50px;
+  color: white;
 `;
